@@ -1,0 +1,5 @@
+user: ubuntu
+group: ubuntu
+paths:
+  - /
+  - /home/ubuntu/.nuget

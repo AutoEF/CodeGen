@@ -1,7 +1,9 @@
-FROM ubuntu:16.04
+FROM microsoft/dotnet:2.1-sdk-bionic
 
+# Environment Varialbes
 ENV OMNISHARP_VSCODE_VERSION=1.14.0
 
+# apt-get dependencies
 RUN apt-get update \
     && apt-get install -y \
         curl \
@@ -9,6 +11,16 @@ RUN apt-get update \
         unzip \
         wget
 
+# add ubuntu user
+RUN addgroup --gid 1000 ubuntu \
+    && adduser --uid 1000 --ingroup ubuntu --home /home/ubuntu --shell /bin/sh --disabled-password --gecos "" ubuntu
+
+# install fixuid
+RUN curl -SsL https://github.com/boxboat/fixuid/releases/download/v0.3/fixuid-0.3-linux-amd64.tar.gz | tar -C /usr/local/bin -xzf - \
+    && chown root:root /usr/local/bin/fixuid \
+    && chmod 4755 /usr/local/bin/fixuid
+
+# install omnisharp-vscode
 RUN mkdir /opt/omnisharp-vscode \
     && cd /opt/omnisharp-vscode \
     && wget -q "https://github.com/OmniSharp/omnisharp-vscode/releases/download/v${OMNISHARP_VSCODE_VERSION}/csharp-${OMNISHARP_VSCODE_VERSION}.vsix" \
@@ -24,4 +36,14 @@ RUN mkdir /opt/omnisharp-vscode \
     && rm "$zip_file" \
     && chmod +x mono.linux-x86_64 run
 
+# copy stage directory
 COPY stage/ /
+
+# create user directories
+RUN mkdir -p /home/ubuntu/.nuget /home/ubuntu/project \
+    && chown ubuntu:ubuntu /home/ubuntu/.nuget /home/ubuntu/project
+
+# set workdir, entrypoint, and user
+WORKDIR /home/ubuntu/project
+ENTRYPOINT ["fixuid"]
+USER ubuntu:ubuntu
